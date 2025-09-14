@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>French Memory Game</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --bg-color: #f8f9fa;
+            --card-front-color: #ffffff;
+            --card-back-color: #007bff;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
+            --text-color: #212529;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .start-screen, .game-over-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        .start-screen h2, .game-over-screen h2 {
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            min-width: 120px;
+        }
+
+        .mode-button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .mode-button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .difficulty-button {
+            background-color: #e9ecef;
+            color: var(--text-color);
+            border: 1px solid #ced4da;
+        }
+        
+        .difficulty-button.selected {
+            background-color: var(--correct-color);
+            color: white;
+        }
+
+        .difficulty-button:not(.selected):hover {
+            background-color: #e2e6ea;
+            transform: translateY(-2px);
+        }
+
+        #game-board {
+            display: grid;
+            gap: 10px;
+            justify-content: center;
+            perspective: 1000px;
+            margin-top: 20px;
+        }
+
+        .card-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .card.matched {
+            box-shadow: 0 0 10px 5px var(--correct-color);
+        }
+
+        .card.incorrect {
+            box-shadow: 0 0 10px 5px var(--incorrect-color);
+        }
+        
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            padding: 10px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+
+        .card-front {
+            background-color: var(--card-front-color);
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            transform: rotateY(180deg);
+        }
+
+        .card-back {
+            background-color: var(--card-back-color);
+            color: white;
+        }
+
+        #status-bar {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        #mistake-bar {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        #timer {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        #game-over-message {
+            margin: 20px 0;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        #play-again-button {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .card {
+                width: 100px;
+                height: 100px;
+            }
+            .card-face {
+                font-size: 1em;
+            }
+            .container {
+                padding: 15px;
+            }
+            button {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .card {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>French Memory Game 🇫🇷</h1>
+
+        <div id="start-screen" class="start-screen">
+            <h2>Select a Game Mode</h2>
+            <div class="controls">
+                <button class="mode-button" id="words-mode">Words</button>
+                <button class="mode-button" id="phrases-mode">Phrases</button>
+            </div>
+            <h2>Select Number of Pairs</h2>
+            <div id="difficulty-buttons" class="controls">
+                </div>
+            <button id="start-game-button" class="mode-button">Start Game</button>
+        </div>
+
+        <div id="game-screen" style="display: none;">
+            <div id="status-bar">
+                <div id="mistake-bar">Mistakes: <span id="mistake-count">0</span></div>
+                <div id="timer"></div>
+            </div>
+            <div id="game-board"></div>
+        </div>
+
+        <div id="game-over-screen" class="game-over-screen" style="display: none;">
+            <h2 id="game-over-message"></h2>
+            <button id="play-again-button">Play Again</button>
+        </div>
+    </div>
+
+    <audio id="flip-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="auto"></audio>
+    <audio id="match-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" preload="auto"></audio>
+    <audio id="incorrect-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" preload="auto"></audio>
+    <audio id="win-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" preload="auto"></audio>
+    <audio id="lose-sound" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" preload="auto"></audio>
+
+
+    <script>
+        // Data for the game
+        const wordsData = [
+            { en: "the book", fr: "le livre" },
+            { en: "the car", fr: "la voiture" },
+            { en: "the table", fr: "la table" },
+            { en: "the boy", fr: "le garçon" },
+            { en: "the girl", fr: "la fille" },
+            { en: "to be", fr: "être" },
+            { en: "to have", fr: "avoir" },
+            { en: "to go", fr: "aller" },
+            { en: "you say", fr: "vous dites" },
+            { en: "I am", fr: "je suis" },
+            { en: "he is", fr: "il est" },
+            { en: "to do/make", fr: "faire" },
+            { en: "to know", fr: "savoir" },
+            { en: "to see", fr: "voir" },
+            { en: "big", fr: "grand" },
+            { en: "small", fr: "petit" },
+            { en: "beautiful", fr: "beau" },
+            { en: "good", fr: "bon" },
+            { en: "happy", fr: "heureux" },
+            { en: "quickly", fr: "rapidement" },
+            { en: "slowly", fr: "lentement" },
+            { en: "well", fr: "bien" },
+            { en: "today", fr: "aujourd'hui" },
+            { en: "here", fr: "ici" },
+            { en: "there", fr: "là" },
+            { en: "with", fr: "avec" },
+            { en: "without", fr: "sans" },
+            { en: "for", fr: "pour" },
+            { en: "from", fr: "de" },
+            { en: "at/to", fr: "à" },
+            { en: "in", fr: "dans" },
+            { en: "on", fr: "sur" },
+            { en: "under", fr: "sous" },
+            { en: "near", fr: "près de" },
+            { en: "far from", fr: "loin de" },
+            { en: "and", fr: "et" },
+            { en: "but", fr: "mais" },
+            { en: "or", fr: "ou" },
+            { en: "why", fr: "pourquoi" },
+            { en: "because", fr: "parce que" },
+            { en: "what", fr: "quoi" },
+            { en: "when", fr: "quand" },
+            { en: "how", fr: "comment" },
+            { en: "who", fr: "qui" },
+            { en: "where", fr: "où" },
+            { en: "the house", fr: "la maison" },
+            { en: "the water", fr: "l'eau" },
+            { en: "the city", fr: "la ville" },
+            { en: "the sun", fr: "le soleil" },
+            { en: "the moon", fr: "la lune" }
+        ];
+
+        const phrasesData = [
+            { en: "Hello", fr: "Bonjour" },
+            { en: "How are you?", fr: "Comment allez-vous?" },
+            { en: "What is your name?", fr: "Comment vous appelez-vous?" },
+            { en: "My name is...", fr: "Je m'appelle..." },
+            { en: "Please", fr: "S'il vous plaît" },
+            { en: "Thank you", fr: "Merci" },
+            { en: "You're welcome", fr: "De rien" },
+            { en: "Excuse me", fr: "Excusez-moi" },
+            { en: "I'm sorry", fr: "Je suis désolé(e)" },
+            { en: "Do you speak English?", fr: "Parlez-vous anglais?" },
+            { en: "I don't understand", fr: "Je ne comprends pas" },
+            { en: "I love you", fr: "Je t'aime" },
+            { en: "Good morning", fr: "Bonjour" },
+            { en: "Good evening", fr: "Bonsoir" },
+            { en: "Good night", fr: "Bonne nuit" },
+            { en: "Goodbye", fr: "Au revoir" },
+            { en: "See you later", fr: "À plus tard" },
+            { en: "What time is it?", fr: "Quelle heure est-il?" },
+            { en: "Where is the bathroom?", fr: "Où sont les toilettes?" },
+            { en: "How much does it cost?", fr: "Combien ça coûte?" },
+            { en: "I would like...", fr: "Je voudrais..." },
+            { en: "I am hungry", fr: "J'ai faim" },
+            { en: "I am thirsty", fr: "J'ai soif" },
+            { en: "I am tired", fr: "Je suis fatigué(e)" },
+            { en: "I am lost", fr: "Je suis perdu(e)" },
+            { en: "Help!", fr: "Au secours!" },
+            { en: "Have a good day", fr: "Bonne journée" },
+            { en: "Have a good trip", fr: "Bon voyage" },
+            { en: "Cheers!", fr: "Santé!" },
+            { en: "Enjoy your meal", fr: "Bon appétit" },
+            { en: "It's a beautiful day", fr: "Il fait beau" },
+            { en: "It's raining", fr: "Il pleut" },
+            { en: "It's cold", fr: "Il fait froid" },
+            { en: "It's hot", fr: "Il fait chaud" },
+            { en: "I like it", fr: "J'aime ça" },
+            { en: "I don't like it", fr: "Je n'aime pas ça" },
+            { en: "Let's go", fr: "On y va" },
+            { en: "What's new?", fr: "Quoi de neuf?" },
+            { en: "Everything is fine", fr: "Tout va bien" },
+            { en: "Can you help me?", fr: "Pouvez-vous m'aider?" },
+            { en: "I am a tourist", fr: "Je suis touriste" },
+            { en: "How do you say...?", fr: "Comment dit-on...?" },
+            { en: "This is for you", fr: "C'est pour vous" },
+            { en: "I need a doctor", fr: "J'ai besoin d'un médecin" },
+            { en: "Can I have the bill?", fr: "L'addition, s'il vous plaît" },
+            { en: "What a pity!", fr: "Quel dommage!" },
+            { en: "Let's eat", fr: "Mangeons" },
+            { en: "It's delicious", fr: "C'est délicieux" },
+            { en: "I'll be right back", fr: "Je reviens tout de suite" },
+            { en: "I'm looking for...", fr: "Je cherche..." }
+        ];
+        
+        // Audio elements
+        const flipSound = document.getElementById('flip-sound');
+        const matchSound = document.getElementById('match-sound');
+        const incorrectSound = document.getElementById('incorrect-sound');
+        const winSound = document.getElementById('win-sound');
+        const loseSound = document.getElementById('lose-sound');
+
+        // DOM Elements
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const gameBoard = document.getElementById('game-board');
+        const mistakeCountEl = document.getElementById('mistake-count');
+        const timerEl = document.getElementById('timer');
+        const gameOverMessageEl = document.getElementById('game-over-message');
+        const difficultyButtonsContainer = document.getElementById('difficulty-buttons');
+
+        // Game State Variables
+        let gameMode = 'words';
+        let numPairs = 6;
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let mistakes = 0;
+        let gameData = wordsData;
+        let isBoardLocked = false;
+        let difficultyLevels = [6, 8, 10, 12, 15, 20, 25, 30];
+
+        // Event Listeners
+        document.getElementById('words-mode').addEventListener('click', () => setGameMode('words'));
+        document.getElementById('phrases-mode').addEventListener('click', () => setGameMode('phrases'));
+        document.getElementById('start-game-button').addEventListener('click', startGame);
+        document.getElementById('play-again-button').addEventListener('click', showStartScreen);
+
+        // Functions
+        function setGameMode(mode) {
+            gameMode = mode;
+            gameData = mode === 'words' ? wordsData : phrasesData;
+            document.querySelectorAll('.mode-button').forEach(btn => btn.style.backgroundColor = 'var(--primary-color)');
+            document.getElementById(`${mode}-mode`).style.backgroundColor = 'var(--correct-color)';
+        }
+
+        function createDifficultyButtons() {
+            difficultyButtonsContainer.innerHTML = '';
+            difficultyLevels.forEach(level => {
+                const button = document.createElement('button');
+                button.classList.add('difficulty-button');
+                button.textContent = `${level} Pairs`;
+                button.dataset.pairs = level;
+                button.addEventListener('click', () => {
+                    numPairs = level;
+                    updateDifficultyButtonSelection();
+                });
+                difficultyButtonsContainer.appendChild(button);
+            });
+            updateDifficultyButtonSelection();
+        }
+
+        function updateDifficultyButtonSelection() {
+            document.querySelectorAll('.difficulty-button').forEach(btn => {
+                btn.classList.remove('selected');
+                if (parseInt(btn.dataset.pairs) === numPairs) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+
+        function startGame() {
+            if (numPairs > gameData.length) {
+                alert(`There are only ${gameData.length} pairs available in this mode. Please select a lower number of pairs.`);
+                return;
+            }
+            startScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            
+            resetGameState();
+            generateCards();
+            updateMistakeDisplay();
+
+            isBoardLocked = true;
+            setTimeout(() => {
+                isBoardLocked = false;
+                flipAllCardsBack();
+            }, 15000);
+
+            let timeLeft = 15;
+            timerEl.textContent = `Cards visible for: ${timeLeft}s`;
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = `Cards visible for: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.style.display = 'none';
+                }
+            }, 1000);
+        }
+
+        function resetGameState() {
+            cards = [];
+            flippedCards = [];
+            matchedPairs = 0;
+            mistakes = 0;
+            isBoardLocked = false;
+            gameBoard.innerHTML = '';
+            timerEl.style.display = 'block';
+            mistakeCountEl.textContent = '0';
+        }
+
+        function generateCards() {
+            const gameSubset = gameData.sort(() => 0.5 - Math.random()).slice(0, numPairs);
+            
+            cards = [];
+            gameSubset.forEach(pair => {
+                cards.push({ id: crypto.randomUUID(), type: 'en', content: pair.en });
+                cards.push({ id: crypto.randomUUID(), type: 'fr', content: pair.fr, matchId: pair.en });
+            });
+            
+            cards.sort(() => 0.5 - Math.random());
+            
+            createGameBoard();
+            flipAllCards();
+        }
+
+        function createGameBoard() {
+            gameBoard.innerHTML = '';
+            const rowSize = Math.ceil(Math.sqrt(cards.length));
+            let cardIndex = 0;
+
+            for (let i = 0; i < cards.length; i++) {
+                const cardData = cards[i];
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.id = cardData.id;
+                cardElement.dataset.type = cardData.type;
+                cardElement.dataset.content = cardData.content;
+                cardElement.dataset.matchId = cardData.matchId || cardData.content;
+
+                cardElement.innerHTML = `
+                    <div class="card-face card-front">${cardData.content}</div>
+                    <div class="card-face card-back"></div>
+                `;
+
+                cardElement.addEventListener('click', handleCardClick);
+                gameBoard.appendChild(cardElement);
+            }
+
+            // Adjust grid layout for a better visual
+            gameBoard.style.gridTemplateColumns = `repeat(${rowSize}, 1fr)`;
+        }
+
+        function flipAllCards() {
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.add('is-flipped');
+            });
+        }
+
+        function flipAllCardsBack() {
+            document.querySelectorAll('.card').forEach(card => {
+                card.classList.remove('is-flipped');
+            });
+        }
+
+        function handleCardClick(event) {
+            if (isBoardLocked) return;
+
+            const clickedCard = event.currentTarget;
+            if (clickedCard.classList.contains('is-flipped') || clickedCard.classList.contains('matched')) {
+                return;
+            }
+
+            flipSound.play();
+            clickedCard.classList.add('is-flipped');
+            flippedCards.push(clickedCard);
+
+            if (flippedCards.length === 2) {
+                isBoardLocked = true;
+                setTimeout(checkForMatch, 800);
+            }
+        }
+
+        function checkForMatch() {
+            const [card1, card2] = flippedCards;
+            
+            const content1 = card1.dataset.content.toLowerCase();
+            const content2 = card2.dataset.content.toLowerCase();
+
+            const isMatch = (card1.dataset.matchId === card2.dataset.content || card2.dataset.matchId === card1.dataset.content);
+
+            if (isMatch) {
+                handleCorrectMatch(card1, card2);
+            } else {
+                handleIncorrectMatch(card1, card2);
+            }
+        }
+
+        function handleCorrectMatch(card1, card2) {
+            matchSound.play();
+            card1.removeEventListener('click', handleCardClick);
+            card2.removeEventListener('click', handleCardClick);
+            card1.classList.add('matched');
+            card2.classList.add('matched');
+            flippedCards = [];
+            isBoardLocked = false;
+            matchedPairs++;
+            checkWinCondition();
+        }
+
+        function handleIncorrectMatch(card1, card2) {
+            incorrectSound.play();
+            mistakes++;
+            updateMistakeDisplay();
+
+            card1.classList.add('incorrect');
+            card2.classList.add('incorrect');
+            
+            setTimeout(() => {
+                card1.classList.remove('is-flipped', 'incorrect');
+                card2.classList.remove('is-flipped', 'incorrect');
+                flippedCards = [];
+                isBoardLocked = false;
+                checkLossCondition();
+            }, 1000);
+        }
+
+        function updateMistakeDisplay() {
+            mistakeCountEl.textContent = mistakes;
+        }
+
+        function checkWinCondition() {
+            if (matchedPairs === numPairs) {
+                winSound.play();
+                isBoardLocked = true;
+                showGameOverScreen(true);
+            }
+        }
+
+        function checkLossCondition() {
+            if (mistakes >= 3) {
+                loseSound.play();
+                isBoardLocked = true;
+                showGameOverScreen(false);
+            }
+        }
+
+        function showGameOverScreen(didWin) {
+            gameScreen.style.display = 'none';
+            gameOverScreen.style.display = 'flex';
+            
+            let message = '';
+            if (didWin) {
+                message = `Congratulations! You won with ${mistakes} mistake${mistakes !== 1 ? 's' : ''}! 🎉`;
+            } else {
+                message = `Game Over! You made too many mistakes. 😔`;
+            }
+            
+            gameOverMessageEl.textContent = message;
+            adjustDifficulty(didWin);
+        }
+
+        function adjustDifficulty(didWin) {
+            const currentIndex = difficultyLevels.indexOf(numPairs);
+            let nextDifficulty;
+
+            if (didWin) {
+                if (mistakes <= 1) { // Success
+                    nextDifficulty = difficultyLevels[currentIndex + 1];
+                } else { // Close Win (exactly 2 mistakes)
+                    nextDifficulty = numPairs;
+                }
+            } else { // Game Over
+                nextDifficulty = difficultyLevels[currentIndex - 1];
+            }
+            
+            // Set the next difficulty, clamping to the valid range
+            if (nextDifficulty !== undefined && nextDifficulty > 0) {
+                numPairs = nextDifficulty;
+            }
+            
+            if (numPairs > gameData.length) {
+                numPairs = gameData.length;
+            }
+
+            if (numPairs < 6) {
+                numPairs = 6;
+            }
+        }
+
+        function showStartScreen() {
+            gameScreen.style.display = 'none';
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+            updateDifficultyButtonSelection();
+        }
+
+        // Initialize the game
+        createDifficultyButtons();
+        setGameMode('words');
+    </script>
+</body>
+</html>
